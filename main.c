@@ -8,17 +8,18 @@ int main(int argc, char* argv[])
     }
     //read the input file from the user
     FILE *input = fopen(argv[1], "r");
+    FILE *output = fopen(argv[2], "w");
     //check if the file is empty
     if (input == NULL)
     {
         printf("Error: File is empty or does not exist\n");
         return 1;
     }
-    char c;
-    FILE *output = fopen(argv[2], "w");
+    
+    int c;
     while ((c = fgetc(input)) != EOF)
     {
-        fprintf(output, "%c", c);
+        fputc(c,output);
     }
     fclose(output);
     fclose(input);
@@ -26,3 +27,5 @@ int main(int argc, char* argv[])
     return 0;
    
 }
+
+
