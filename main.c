@@ -16,26 +16,28 @@ typedef int SOCKET;
 typedef struct sockaddr_in SOCKADDR_IN;
 typedef struct sockaddr SOCKADDR;
 
-void *whileRead(int *sockfd)
+void whileRead(int *sockfd)
 {
     char buff[MAX];
     int n;
-    for (;;) {
+    while(1) {
         bzero(buff, sizeof(buff));
-        read(*sockfd, buff, sizeof(buff));
-        printf("From Client : %s", buff);
-        if ((strncmp(buff, "exit", 4)) == 0) {
-            printf("Client Exit...\n");
-            break;
+        //if something in the buffer then print it  
+        if(read(*sockfd, buff, sizeof(buff)) > 0){
+            printf("From Server : %s", buff);
+            if ((strncmp(buff, "exit", 4)) == 0) {
+                printf("Client Exit...\n");
+                break;
+        }
         }
     }
 }
-
+/*
 void *whileWrite(int *sockfd)
 {
     char buff[MAX];
     int n;
-    for (;;) {
+    while(1) {
         bzero(buff, sizeof(buff));
         printf("Enter the string : ");
         n = 0;
@@ -47,18 +49,12 @@ void *whileWrite(int *sockfd)
             break;
         }
     }
-}
-void boucleServeur(SOCKET csock)
+}*/
+void *boucleServeur(void * csock_arg)
 {
-    pthread_t thread;
-    pthread_t threadW;
-    //thread whileread
-    pthread_create(&thread, NULL, whileRead, &csock);
-    //thread whilewrite
-    pthread_create(&threadW, NULL, whileWrite, &csock);
-    //end of thread
-    pthread_join(thread, NULL);
-    pthread_join(threadW, NULL);
+    SOCKET csock = *((SOCKET*) csock_arg);
+    whileRead(&csock);
+    close(csock);
 
 }   
 
@@ -66,17 +62,20 @@ void boucleServeur(SOCKET csock)
 void acceptClient(SOCKET sock)
 {
     SOCKADDR_IN csin;
-    SOCKET csock;
+    SOCKET csocks[5]; 
     socklen_t recsize = sizeof(csin);
-    csock = accept(sock, (SOCKADDR*)&csin, &recsize);
-    printf("Client connected\n");
-    printf("ip : %s\n", inet_ntoa(csin.sin_addr));
-    char buffer[] = "Bonjour le client =)";
-    send(csock, buffer, strlen(buffer), 0);
-    printf("Message sent\n");
-    
-    boucleServeur(csock);
-    close(sock);
+    pthread_t thread;
+    int i = 0;
+    while(1){
+        if((csocks[i] = accept(sock, (SOCKADDR *) &csin, &recsize)) != INVALID_SOCKET && i < 5) {
+            printf("Client connected\n");
+            printf("ip : %s\n", inet_ntoa(csin.sin_addr));
+            int x = pthread_create(&thread, NULL, boucleServeur, (void*) &csocks[i]);
+
+            i++;
+        }
+    }
+    pthread_join(thread, NULL);
 }
 
 
@@ -88,7 +87,7 @@ void createSocket(){
     sin.sin_family = AF_INET;
     sin.sin_port = htons(11111);
     //print port
-    printf("Port: %d\n", ntohs(sin.sin_port));
+    printf("Port: %d\nSocket ready...\n", ntohs(sin.sin_port));
     bind(sock, (SOCKADDR*)&sin, sizeof(sin));
     listen(sock, 5);
     //fonction acceptclient
@@ -123,6 +122,15 @@ int main(int argc, char* argv[])
     printf("File copied successfully\n");
     return 0; */
    createSocket();
+   return EXIT_SUCCESS;
 }
 
 
+//function return size of the file
+int sizeFile(FILE *file)
+{
+    fseek(file, 0, SEEK_END);
+    int size = ftell(file);
+    fseek(file, 0, SEEK_SET);
+    return size;
+}
