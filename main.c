@@ -10,27 +10,32 @@
 
 #define INVALID_SOCKET -1
 #define SOCKET_ERROR -1
-#define MAX 20
+#define MAX 1024
 
 typedef int SOCKET;
 typedef struct sockaddr_in SOCKADDR_IN;
 typedef struct sockaddr SOCKADDR;
-
+int i = 0;
 void whileRead(int *sockfd)
 {
-    char buff[MAX];
+    FILE *output = fopen("copie", "w");
+    
     int n;
+    char buff[MAX];
+    size_t size = sizeof(buff);
     while(1) {
-        bzero(buff, sizeof(buff));
+        bzero(buff, MAX);
         //if something in the buffer then print it  
-        if(read(*sockfd, buff, sizeof(buff)) > 0){
-            printf("From Server : %s", buff);
-            if ((strncmp(buff, "exit", 4)) == 0) {
-                printf("Client Exit...\n");
-                break;
-        }
+        int i = read(*sockfd, buff, sizeof buff);
+
+        if( i > 0){
+            //write in the file
+            write(fileno(output), buff, sizeof buff);
         }
     }
+    
+    fclose(output);
+    pthread_exit(NULL);
 }
 /*
 void *whileWrite(int *sockfd)
@@ -65,7 +70,6 @@ void acceptClient(SOCKET sock)
     SOCKET csocks[5]; 
     socklen_t recsize = sizeof(csin);
     pthread_t thread;
-    int i = 0;
     while(1){
         if((csocks[i] = accept(sock, (SOCKADDR *) &csin, &recsize)) != INVALID_SOCKET && i < 5) {
             printf("Client connected\n");
@@ -73,6 +77,9 @@ void acceptClient(SOCKET sock)
             int x = pthread_create(&thread, NULL, boucleServeur, (void*) &csocks[i]);
 
             i++;
+        }
+        else{
+            printf("Too much client already here...\n");
         }
     }
     pthread_join(thread, NULL);
